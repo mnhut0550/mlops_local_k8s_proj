@@ -1,0 +1,97 @@
+# k8s/trainer.yaml
+{{- if .Values.trainer.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: trainer
+  namespace: {{ .Values.namespace}}
+spec:
+  backoffLimit: 0   
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: dvc-pull
+          image: python:3.11-slim
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              pip install pip --upgrade &&
+              pip install dvc dvc-s3 -q &&
+              cd /app &&
+              python -m dvc init --no-scm &&
+              python -m dvc remote add minio s3://dvc &&
+              python -m dvc remote modify minio endpointurl http://minio-service:9000 &&
+              python -m dvc remote modify --local minio access_key_id $MINIO_ROOT_USER &&
+              python -m dvc remote modify --local minio secret_access_key $MINIO_ROOT_PASSWORD &&
+              cp /etc/dvc-pointer/data.dvc /app/data.dvc &&
+              python -m dvc pull -r minio
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mlops-secret
+                  key: MINIO_ROOT_USER
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mlops-secret
+                  key: MINIO_ROOT_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: dvc-pointer
+              mountPath: /etc/dvc-pointer
+      containers:
+        - name: trainer
+          image: {{ .Values.trainer.image}}
+          imagePullPolicy: Never
+          env:
+            - name: MLFLOW_TRACKING_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: mlops-config
+                  key: MLFLOW_TRACKING_URI
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: mlops-secret
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlops-secret
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: MLFLOW_S3_ENDPOINT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: mlops-config
+                  key: MLFLOW_S3_ENDPOINT_URL
+            - name: GIT_PYTHON_REFRESH
+              valueFrom:
+                configMapKeyRef:
+                  name: mlops-config
+                  key: GIT_PYTHON_REFRESH
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: model-code
+              mountPath: /app/src
+            - name: model-params
+              mountPath: /app/params.yaml
+              subPath: params.yaml
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: dvc-pointer
+          configMap:
+            name: dvc-pointer   # CI/CD tạo ConfigMap này trước helm upgrade
+        - name: model-code
+          configMap:
+            name: model-code
+        - name: model-params
+          configMap:
+            name: model-params
+{{- end }}

@@ -1,0 +1,32 @@
+# k8s/minio-setup.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-setup
+  namespace: {{ .Values.namespace}}
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: minio-setup
+          image: minio/mc:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              mc alias set local http://minio-service:9000 $MINIO_ROOT_USER $MINIO_ROOT_PASSWORD &&
+              mc mb --ignore-existing local/mlflow &&
+              mc mb --ignore-existing local/dvc &&
+              echo "Buckets created!"
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mlops-secret
+                  key: MINIO_ROOT_USER
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mlops-secret
+                  key: MINIO_ROOT_PASSWORD

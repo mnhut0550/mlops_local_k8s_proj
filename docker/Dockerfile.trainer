@@ -1,0 +1,20 @@
+# docker/Dockerfile.trainer
+
+FROM image-classifier-base:latest
+
+WORKDIR /app
+
+COPY requirements/trainer.txt trainer.txt
+COPY requirements/base.txt base.txt
+
+RUN pip install \
+    --retries 10 \
+    --timeout 600 \
+    -r trainer.txt
+
+COPY src/train.py ./src/train.py
+
+ENV MLFLOW_TRACKING_URI=http://mlflow-service:5000
+ENV PYTHONUNBUFFERED=1
+
+CMD ["python", "src/train.py"]

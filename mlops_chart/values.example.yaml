@@ -1,0 +1,43 @@
+# mlops_local_k8s/values.yaml
+# Copy file này thành values.yaml rồi điền thông tin thật
+# cp values.example.yaml mlops_local_k8s/values.yaml
+
+namespace: mlops
+
+secret:
+  minioRootUser: "your-minio-user"        # tối thiểu 3 ký tự
+  minioRootPassword: "your-minio-password" # tối thiểu 8 ký tự
+  awsAccessKeyId: "your-minio-user"        # phải trùng minioRootUser
+  awsSecretAccessKey: "your-minio-password" # phải trùng minioRootPassword
+  grafanaPassword: "your-grafana-password"
+
+configmap:
+  mlflowTrackingUri: "http://mlflow-service:5000"
+  mlflowS3EndpointUrl: "http://minio-service:9000"
+  modelName: "image-classifier"
+  modelVersion: "champion"
+  gitPythonRefresh: "quiet"
+
+minio:
+  image: "minio/minio:latest"
+  storage: "4Gi"
+
+mlflow:
+  image: "ghcr.io/mlflow/mlflow:v2.11.1"
+  storage: "1Gi"
+
+api:
+  image: "image-classifier-api:latest"
+  replicas: 1
+  port: 8000
+  enabled: false
+
+trainer:
+  image: "image-classifier-trainer:latest"
+  enabled: false
+
+prometheus:
+  image: "prom/prometheus:v2.51.0"
+
+grafana:
+  image: "grafana/grafana:10.4.0"

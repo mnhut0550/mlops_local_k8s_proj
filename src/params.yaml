@@ -1,0 +1,39 @@
+# params.yaml
+# =====================================
+# Generic config — dùng được cho bất kỳ ImageFolder dataset nào
+# Đổi dataset : chỉ đổi data_dir, chạy lại
+# Thêm model  : thêm 1 entry vào danh sách models
+# Thêm class  : thêm folder vào data_dir, chạy lại — không sửa gì khác
+# =====================================
+
+data:
+  data_dir: "./data"    # ImageFolder root — bên trong có train/ và val/
+  batch_size: 32
+  img_size: 32          # resize tất cả ảnh về kích thước này
+                        # classes tự detect từ tên folder, không cần khai báo
+
+training:
+  num_epochs: 5
+  optimizer: "Adam"
+
+# Thêm backbone mới: thêm 1 entry ở đây + thêm vào PRETRAINED_BACKBONES trong src/models.py
+models:
+  - name: "SimpleCNN"
+    lr: 0.001
+    freeze_backbone: false
+
+  - name: "ResNet18"
+    lr: 0.0005
+    freeze_backbone: true
+
+  # - name: "MobileNetV3"
+  #   lr: 0.0005
+  #   freeze_backbone: true
+
+  # - name: "EfficientNetB0"
+  #   lr: 0.0003
+  #   freeze_backbone: true
+
+mlflow:
+  experiment_name: "image-classification"
+  registered_model_name: "image-classifier"
